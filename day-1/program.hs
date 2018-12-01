@@ -1,11 +1,9 @@
-import qualified Data.Text    as Text
-import qualified Data.Text.IO as Text
 import qualified Data.IntSet  as Set
 import Data.Foldable (foldrM)
 
 main = do
-    ls <- fmap Text.lines $ Text.readFile "input-1.txt"
-    let ints = fmap (toInt . Text.unpack) ls
+    ls <- fmap lines $ readFile "input-1.txt"
+    let ints = fmap toInt ls
     let part1 = sum ints
     let loop = ints ++ loop
     let (part2, _) = foldUntil findDup initState loop
@@ -13,8 +11,7 @@ main = do
 
 toInt :: String -> Int
 toInt ('+' : num) = read num
-toInt ('-' : num) = - (read num)
-toInt _ = 0
+toInt num = read num
 
 initState = (0, Set.empty)
 

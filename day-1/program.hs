@@ -1,6 +1,7 @@
 import qualified Data.Text    as Text
 import qualified Data.Text.IO as Text
-import qualified Data.Set     as Set
+import qualified Data.IntSet  as Set
+import Data.Foldable (foldrM)
 
 main = do
     ls <- fmap Text.lines $ Text.readFile "input-1.txt"
@@ -17,13 +18,14 @@ toInt _ = 0
 
 initState = (0, Set.empty)
 
+foldUntil :: (a -> b -> Maybe b) -> b -> [a] -> b
 foldUntil _ state [] = state
 foldUntil f state (x : xs) =
-    case f state x of
+    case f x state of
         Just next -> foldUntil f next xs
         Nothing -> state
 
-findDup (sum, visited) x =
+findDup x (sum, visited) =
     if Set.member sum visited
     then Nothing
     else Just (sum + x, Set.insert sum visited)

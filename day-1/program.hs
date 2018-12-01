@@ -7,7 +7,7 @@ main = do
     let ints = fmap (toInt . Text.unpack) ls
     let part1 = sum ints
     let loop = ints ++ loop
-    let part2 = firstDuplicate loop 0 Set.empty
+    let (part2, _) = foldUntil findDup initState loop
     return (part1, part2)
 
 toInt :: String -> Int
@@ -15,9 +15,15 @@ toInt ('+' : num) = read num
 toInt ('-' : num) = - (read num)
 toInt _ = 0
 
-firstDuplicate (x : xs) value visited = 
-    let nextValue = x + value
-    in
-    if Set.member nextValue visited
-    then nextValue
-    else firstDuplicate xs nextValue $ Set.insert nextValue visited
+initState = (0, Set.empty)
+
+foldUntil _ state [] = state
+foldUntil f state (x : xs) =
+    case f state x of
+        Just next -> foldUntil f next xs
+        Nothing -> state
+
+findDup (sum, visited) x =
+    if Set.member sum visited
+    then Nothing
+    else Just (sum + x, Set.insert sum visited)

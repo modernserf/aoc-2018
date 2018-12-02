@@ -1,13 +1,14 @@
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
-import Data.Foldable (foldlM)
+import Data.Foldable (foldlM, foldrM)
+import Data.Either (fromLeft)
+import Data.List (find)
 
 main = do
     ls <- lines <$> readFile "input-2.txt"
     let part1 = checksum ls
     let part2 = findMatch ls
     return (part1, part2)
-
 
 example1 = ["abcdef","bababc","abbcde","abcccd","aabcdd","abcdee","ababab"]
 example2 = ["abcde","fghij","klmno","pqrst","fguij","axcye","wvxyz"]
@@ -18,23 +19,22 @@ elemsSet m = Set.fromList $ Map.elems m
 has2or3 elems = (bit $ Set.member 2 elems, bit $ Set.member 3 elems)
 bit x = if x then 1 else 0
 
-checksum xs =   
+checksum xs =
     let (twos, threes) = unzip $ fmap (has2or3 . elemsSet . letterCount) xs in
     (sum twos) * (sum threes)
 
 findMatch [] = ""
 findMatch (source : toCompare) =
-    let matchResults = foldlM strsAreClose source toCompare in
-    case matchResults of
+    case foldlM strsAreClose source toCompare of
         Left match -> match
         Right _ -> findMatch toCompare
 
-strsAreClose :: String -> String -> Either String String
 strsAreClose source compare =
-    let (match, errors) = foldl compareChars ("", 0) (zip source compare) in
-    if errors == 1 then Left match else Right source
+    maybe (Right source) (Left . fst) $ foldrM compareChars ("", 0) (zip source compare)
 
--- perf TODO: bail at 2 errors, build string in reverse then flip
-compareChars :: (String, Int) -> (Char, Char) -> (String, Int)
-compareChars (match, errors) (l, r) =
-    if l == r then (match ++ [l], errors) else (match, errors + 1)
+-- note: this folds from the right, and builds the match string backwards
+compareChars (l, r) (match, errors) =
+    case (l == r, errors) of
+        (True, _) -> Just (l : match, errors)
+        (False, 0) -> Just (match, 1)
+        _ -> Nothing

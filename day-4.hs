@@ -15,13 +15,13 @@ main = do
   ls <- lines <$> readFile "input-4.txt"
   let actions = rights $ fmap parseLine ls
   let shifts = guardShifts actions
-  let mp = fmap concat $ collectEntries shifts
-  let byMostSleepingMinute = fmap minuteInIntervalsWhenMostLikelySleeping mp
+  let shiftMap = fmap concat $ collectEntries shifts
+  let byMostSleepingMinute = fmap minuteInIntervalsWhenMostLikelySleeping shiftMap
 
-  let sleepiestGuardID = mostSleepingGuard mp
+  let sleepiestGuardID = mostSleepingGuard shiftMap
   let part1 = sleepiestGuardID * (byMostSleepingMinute ! sleepiestGuardID)
   
-  let consistentlySleepyGuardID = consistentlySleepyGuard mp
+  let consistentlySleepyGuardID = consistentlySleepyGuard shiftMap
   let part2 = consistentlySleepyGuardID * (byMostSleepingMinute ! consistentlySleepyGuardID)
   
   return (part1, part2)
@@ -167,10 +167,10 @@ mapCount = foldr (\key -> Map.insertWith (+) key 1) Map.empty
 
 entryForMaxValue :: Map t Int -> (t, Int)
 entryForMaxValue mp = maximumBy sortPairByValue $ Map.toList mp
+sortPairByValue (_, l) (_, r) = compare l r
 
 keyForMaxValue :: Map t Int -> t
 keyForMaxValue = fst . entryForMaxValue
-sortPairByValue (_, l) (_, r) = compare l r
 
 collectEntries :: Ord k => [(k, v)] -> Map k [v]
 collectEntries = 

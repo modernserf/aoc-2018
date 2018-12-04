@@ -16,12 +16,15 @@ main = do
   let actions = rights $ fmap parseLine ls
   let shifts = guardShifts actions
   let mp = fmap concat $ collectEntries shifts
-  let guardID = mostSleepingGuard mp
-  let intervals = mp ! guardID
-  let mostOften = minuteInIntervalsWhenMostLikelySleeping intervals
+  let byMostSleepingMinute = fmap minuteInIntervalsWhenMostLikelySleeping mp
 
-  let part1 = guardID * mostOften
-  return part1
+  let sleepiestGuardID = mostSleepingGuard mp
+  let part1 = sleepiestGuardID * (byMostSleepingMinute ! sleepiestGuardID)
+  
+  let consistentlySleepyGuardID = consistentlySleepyGuard mp
+  let part2 = consistentlySleepyGuardID * (byMostSleepingMinute ! consistentlySleepyGuardID)
+  
+  return (part1, part2)
 
 -- parsing 
 parseLine = parse action ""
@@ -103,13 +106,18 @@ intervalMinutes (start, end) = minutes end - minutes start
 
 minuteInIntervalsWhenMostLikelySleeping :: [Interval] -> Int
 minuteInIntervalsWhenMostLikelySleeping = 
-  minuteSleepingMostOften . concat . fmap minutesSleeping
+  fst . minuteSleepingMostOften . concat . fmap minutesSleeping
+
+consistentSleeping :: [Interval] -> Int
+consistentSleeping [] = 0
+consistentSleeping xs =
+  (snd . minuteSleepingMostOften . concat . fmap minutesSleeping) xs
 
 minutesSleeping :: Interval -> [Int]
 minutesSleeping (start, end) = [minute start .. (minute end) - 1]
 
-minuteSleepingMostOften :: [Int] -> Int
-minuteSleepingMostOften = keyForMaxValue . mapCount
+minuteSleepingMostOften :: [Int] -> (Int, Int)
+minuteSleepingMostOften = entryForMaxValue . mapCount
 
 -- guard actions
 type GuardID = Int
@@ -150,13 +158,18 @@ wakeUp ts (id, lastInterval : restIntervals) =
 mostSleepingGuard :: GuardShiftMap -> GuardID
 mostSleepingGuard = keyForMaxValue . (fmap totalMinutesSleeping)
 
--- utils
+consistentlySleepyGuard :: GuardShiftMap -> GuardID
+consistentlySleepyGuard = keyForMaxValue . (fmap consistentSleeping)
 
+-- utils
 mapCount :: Ord t => [t] -> Map t Int
 mapCount = foldr (\key -> Map.insertWith (+) key 1) Map.empty
 
+entryForMaxValue :: Map t Int -> (t, Int)
+entryForMaxValue mp = maximumBy sortPairByValue $ Map.toList mp
+
 keyForMaxValue :: Map t Int -> t
-keyForMaxValue mp = fst $ maximumBy sortPairByValue $ Map.toList mp
+keyForMaxValue = fst . entryForMaxValue
 sortPairByValue (_, l) (_, r) = compare l r
 
 collectEntries :: Ord k => [(k, v)] -> Map k [v]

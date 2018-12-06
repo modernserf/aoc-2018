@@ -7,7 +7,7 @@ main = do
   let part1 = length $ collapsePolymer str
   let withRemoved = testPolymersWithLettersRemoved str
   let part2 = entryForMinValue withRemoved
-  return (part1, withRemoved, part2)
+  return (part1, part2)
 
 letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
@@ -17,20 +17,17 @@ testPolymersWithLettersRemoved polymer =
     letters
     (length <$> collapsePolymer <$> (filterLetters polymer) <$> letters)
 
-filterLetters polymer letter = filter (\ch -> (toUpper ch) /= letter) polymer
+filterLetters polymer letter = filter (((/=) letter) . toUpper) polymer
 
 collapsePolymer :: String -> String
-collapsePolymer x =
-  let collapsed = collapsePolymer1 x in
-    if collapsed == x 
-      then collapsed 
-      else collapsePolymer collapsed
+collapsePolymer = collapse [] 
 
-collapsePolymer1 :: String -> String
-collapsePolymer1 [] = []
-collapsePolymer1 [a] = [a]
-collapsePolymer1 (a : b : cs) =
-  if opposite a b then collapsePolymer1 cs else a : collapsePolymer1 (b : cs)
+collapse :: [Char] -> String -> String
+collapse out [] = out
+collapse []  (i : ins) = collapse [i] ins
+collapse (o : outs) (i : ins) = 
+  if opposite o i then collapse outs ins else collapse (i : o : outs) ins
+
 
 opposite :: Char -> Char -> Bool
 opposite a b = 

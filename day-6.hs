@@ -1,15 +1,41 @@
+import Text.Parsec (parse)
+import Text.Parsec.String (Parser)
+import Text.Parsec.Char (digit, string)
+import Text.Parsec.Combinator (many1)
+import Control.Monad (void)
+import Data.Either (rights)
+import qualified Data.IntMap as IntMap
+import Data.IntMap (IntMap)
+
 main = do
     ls <- lines $ readFile "input-5.txt"
-    let coords = fmap parse ls
-    let bounds = boundsOf coords
-    let filled = floodFill coords bounds
-    let part1 = largestFiniteArea (areas filled) (finiteIDs coords bounds)
+    let coords = rights $ fmap parseLine ls
+    let finite = filter (isFinite coords) coords
+    let filled = foldr (floodFill coords) [] finite
+    let part1 = largestArea $ areas filled
     return part1
 
+type ID = Int
+type Area = Int
 type Coord = (Int, Int)
 type Bounds = (Coord, Coord)
+type Territory = [(ID, Coord)]
 
-parse :: String -> Coord
+-- parsing
+parseLine = parse coordP ""
+
+coordP :: Parser Coord
+coordP = do
+    x <- num
+    void $ string ", "
+    y <- num
+    return (x, y)
+
+num :: Parser Int
+num = do
+    n <- many1 digit
+    return (read n)
+    
 
 boundsOf :: [Coord] -> Bounds
 boundsOf coords = 
@@ -18,26 +44,29 @@ boundsOf coords =
 
 indexed1 = zip [1..]
 
-floodFill :: [Coord] -> Bounds -> [(Int, Coord)]
-floodFill coords ((minX, minY), (maxX, maxY)) =
-    [(i, (x, y)) 
-        | x <- [minX .. maxX]
-        , y <- [minY .. maxY]
-        , i <- closest (indexed1 coords) (x, y)]
+floodFill :: [Coord] -> (ID, Coord) -> Territory -> Territory
+-- in concentric squares around this point,
+-- add a point to the territory with the current ID.
+-- stop when a whole ring fails
 
+closestCoord :: [Coord] -> Coord -> Coord
+closestCoord coords x =
+    snd $ maximumBy (compareF fst) zip (fmap (manhattanDistance x) coords) coords
 
-closest :: [(Int, Coord)] -> Coord -> Int 
+compareF f l r = compare (f l) (f r)
 
-largestFiniteArea :: Map Int Int -> Set Int -> Int
-largestFiniteArea aMap finiteSet =
-    maximum $ fmap snd $ filter (\(id, _) -> Set.member id finiteSet) $ Map.toList aMap
+manhattanDistance :: Coord -> Coord -> Int
+manhattanDistance (x1, y1) (x2, y2) = (abs (x1 - x2)) + (abs (y1 - y2))
 
-areas :: [(Int, Coord)] -> Map Int Int
+isFinite :: [Coord] -> Coord -> Boolean
+-- if there exists a point to the NE, NW, SE, SW, then point is finite
+
+largestArea :: IntMap Area -> Area
+largestArea aMap = maximum $ fmap snd $ Map.toList aMap
+
+areas :: Territory -> IntMap Area
 areas = foldr addToMap Map.empty
 
-finiteIDs :: [Coord] -> Bounds -> Set Int
-
--- key = ID, value = count
-addToMap :: [(Int, Coord)] -> Map Int Int -> Map Int Int
+addToMap :: Territory -> IntMap Area -> IntMap Area
 addToMap (id, _) = Map.insertWith (+) id 1
     
